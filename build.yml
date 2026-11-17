@@ -1,0 +1,30 @@
+name: Build FonSy File Manager
+on:
+  workflow_dispatch:
+  push:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mis archivos (FonSy)
+        uses: actions/checkout@v4
+        with:
+          path: fonsy
+      - name: Codigo original v1.14 con sus submodulos
+        run: git clone --recursive --branch v1.14 https://github.com/owendswang/ps5-web-file-manager.git upstream
+      - name: Aplicar cambios de FonSy
+        run: rsync -a --exclude .github --exclude .git fonsy/ upstream/
+      - name: Dependencias
+        run: sudo apt-get update && sudo apt-get install -y bash clang lld make cmake pkg-config python3 unzip wget git rsync autoconf automake libtool
+      - name: Instalar ps5-payload-sdk
+        run: |
+          wget -q https://github.com/ps5-payload-dev/sdk/releases/latest/download/ps5-payload-sdk.zip
+          sudo unzip -q -d /opt ps5-payload-sdk.zip
+          sudo chmod -R a+rwX /opt/ps5-payload-sdk
+      - name: Compilar
+        working-directory: upstream
+        run: PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk make
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FonSy-File-Manager
+          path: upstream/FonSy-File-Manager.elf
